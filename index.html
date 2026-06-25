@@ -1,0 +1,501 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#13201C">
+<link rel="manifest" href="./manifest.json">
+<link rel="apple-touch-icon" href="./icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="角度計算">
+<meta name="mobile-web-app-capable" content="yes">
+<title>階段補強板 角度計算 ｜ エッジ</title>
+<style>
+  :root{
+    --paper:#F7F5F0; --card:#FFFFFF; --ink:#20201E; --ink-soft:#6B675E;
+    --teal:#0F6E56; --teal-deep:#0B4A3A; --amber:#B5732A;
+    --line:#DAD6CA; --panel:#13201C; --panel-line:#2C3D37;
+    --lcd:#54E0A6; --lcd-soft:#9FC9BC; --danger:#B23A30;
+    --sans:system-ui,-apple-system,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic","Noto Sans JP",sans-serif;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,"DejaVu Sans Mono",monospace;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--sans);
+    line-height:1.5; padding:18px 16px calc(28px + env(safe-area-inset-bottom));
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:460px;}
+  @keyframes rise{from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;}}
+  .wrap > *{animation:rise .5s cubic-bezier(.2,.7,.3,1) both;}
+  .wrap > *:nth-child(2){animation-delay:.04s;}
+  .wrap > *:nth-child(3){animation-delay:.08s;}
+  .wrap > *:nth-child(4){animation-delay:.12s;}
+  @media (prefers-reduced-motion: reduce){ .wrap > *{animation:none;} }
+
+  .eyebrow{font-size:12px; letter-spacing:.16em; color:var(--teal); font-weight:700; margin:2px 0 6px;}
+  h1{font-size:27px; line-height:1.18; margin:0; font-weight:800; letter-spacing:-.01em;}
+  h1 b{color:var(--teal); font-weight:800;}
+  .sub{font-size:13.5px; color:var(--ink-soft); margin:8px 0 18px;}
+
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:16px;}
+  .inputs{margin-bottom:14px;}
+
+  .unit{display:flex; gap:6px; align-items:center; margin-bottom:14px;}
+  .unit span{font-size:12px; color:var(--ink-soft); margin-right:4px;}
+  .seg{display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+  .seg button{appearance:none; border:0; background:transparent; font:inherit; font-size:13px;
+    padding:6px 14px; color:var(--ink-soft); cursor:pointer;}
+  .seg button[aria-pressed="true"]{background:var(--teal); color:#fff; font-weight:700;}
+
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:12px;}
+  .field label{display:block; font-size:12.5px; color:var(--ink-soft); margin-bottom:6px; font-weight:600;}
+  .inwrap{position:relative;}
+  .inwrap input{
+    width:100%; border:1.5px solid var(--line); border-radius:12px; background:#FCFBF8;
+    font-family:var(--mono); font-size:30px; font-weight:600; color:var(--ink);
+    padding:12px 40px 12px 14px; text-align:left;
+  }
+  .inwrap .suf{position:absolute; right:13px; top:50%; transform:translateY(-50%);
+    font-size:14px; color:var(--ink-soft); font-family:var(--sans); pointer-events:none;}
+  .inwrap input:focus{outline:none; border-color:var(--teal); box-shadow:0 0 0 3px rgba(15,110,86,.16);}
+
+  .kekomi{margin-top:14px; border-top:1px dashed var(--line); padding-top:12px;}
+  .check{display:flex; align-items:flex-start; gap:9px; font-size:13px; color:var(--ink); cursor:pointer;}
+  .check input{width:19px; height:19px; margin-top:1px; accent-color:var(--teal); flex:0 0 auto;}
+  .kekfield{margin-top:11px;}
+  .kekfield .inwrap input{font-size:22px;}
+  .kekfield label{font-size:12px;}
+  .going{font-size:12.5px; color:var(--teal-deep); margin-top:7px; font-weight:600; min-height:1em;}
+
+  /* instrument display */
+  .display{background:var(--panel); border-radius:18px; padding:18px 18px 16px; margin:14px 0;
+    color:#EAF6F0; box-shadow:0 10px 30px -18px rgba(11,74,58,.7);}
+  .dhead{font-size:12.5px; letter-spacing:.12em; color:var(--lcd-soft); font-weight:700; display:flex; justify-content:space-between; align-items:baseline;}
+  .dhead .arctan{font-family:var(--mono); font-size:11px; opacity:.7; letter-spacing:0;}
+  .theta{font-family:var(--mono); font-weight:700; line-height:1; margin:4px 0 6px;
+    color:var(--lcd); font-size:66px; letter-spacing:-.02em; display:flex; align-items:baseline; gap:2px;}
+  .theta .deg{font-size:34px; color:var(--lcd-soft);}
+  .wedge{display:block; width:100%; height:auto; margin:2px 0 12px;}
+  .cuts{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .cut{background:#0E1A16; border:1px solid var(--panel-line); border-radius:12px; padding:10px 12px;}
+  .cut.tsume{border-color:#6E5326; background:#1A1610;}
+  .cut .cl{font-size:11.5px; color:var(--lcd-soft); margin-bottom:3px;}
+  .cut.tsume .cl{color:#D9B27A;}
+  .cut .cl b{color:#fff;}
+  .cut .cv{font-family:var(--mono); font-size:27px; font-weight:700; color:#EAF6F0;}
+  .cut.tsume .cv{color:#F2C879;}
+  .saw{font-size:11.5px; color:var(--lcd-soft); margin-top:12px; line-height:1.5;}
+
+  .memo{display:flex; gap:10px; align-items:flex-start; background:#FBF6EE; border:1px solid #ECD9BF;
+    border-left:4px solid var(--amber); border-radius:12px; padding:11px 13px; font-size:12.5px; color:#5A4A33; margin-bottom:14px;}
+  .memo svg{flex:0 0 auto; margin-top:1px;}
+
+  .actions{display:flex; gap:10px; margin:0 0 14px;}
+  .btn{flex:1; appearance:none; border:0; border-radius:12px; font:inherit; font-weight:700; font-size:14px;
+    padding:13px; cursor:pointer;}
+  .btn-primary{background:var(--teal); color:#fff;}
+  .btn-primary:active{background:var(--teal-deep);}
+  .btn-ghost{flex:0 0 auto; background:transparent; color:var(--ink-soft); border:1px solid var(--line); padding:13px 16px;}
+  .btn:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+
+  .history{margin-bottom:10px;}
+  .hhead{display:flex; justify-content:space-between; align-items:center; font-size:12.5px; color:var(--ink-soft); font-weight:700; margin-bottom:8px; padding:0 2px;}
+  .hhead button{appearance:none; border:0; background:transparent; color:var(--danger); font:inherit; font-size:12px; cursor:pointer; padding:2px 4px;}
+  .history ul{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:7px;}
+  .history li{display:flex; justify-content:space-between; align-items:center; gap:10px;
+    background:var(--card); border:1px solid var(--line); border-radius:11px; padding:9px 12px; cursor:pointer;}
+  .history li:active{background:#F1EFE8;}
+  .hi-dim{font-family:var(--mono); font-size:13px; color:var(--ink);}
+  .hi-dim .x{color:var(--ink-soft); padding:0 3px;}
+  .hi-res{font-family:var(--mono); font-size:13px; color:var(--teal-deep); font-weight:700; white-space:nowrap;}
+
+  .tabs{display:flex; gap:6px; background:#ECE9E0; border:1px solid var(--line); border-radius:12px; padding:4px; margin-bottom:16px;}
+  .tabs button{flex:1; appearance:none; border:0; background:transparent; font:inherit; font-weight:700; font-size:14px; padding:10px; border-radius:9px; color:var(--ink-soft); cursor:pointer;}
+  .tabs button[aria-pressed="true"]{background:var(--card); color:var(--teal); box-shadow:0 1px 4px rgba(0,0,0,.08);}
+  .tabs button:focus-visible{outline:2px solid var(--teal); outline-offset:2px;}
+  .lenangles{margin-top:12px;}
+  .btn-wide{width:100%; margin-top:12px;}
+  .theta .lenunit{font-size:26px;}
+  .signs{margin-top:14px; border-top:1px dashed var(--line); padding-top:13px; display:flex; flex-direction:column; gap:10px;}
+  .signrow{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;}
+  .signlab{font-size:12.5px; color:var(--ink-soft); font-weight:600;}
+  .seg.sign button{padding:7px 11px; font-size:12.5px;}
+  .signhint{font-size:11.5px; color:var(--teal-deep); line-height:1.45;}
+  .dhead .badge{font-family:var(--sans); font-size:11px; font-weight:700; letter-spacing:0; color:#0E1A16; background:var(--lcd); border-radius:999px; padding:2px 11px;}
+
+  footer{text-align:center; font-size:11.5px; color:var(--ink-soft); margin-top:18px; letter-spacing:.02em;}
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header>
+    <div class="eyebrow">株式会社エッジ ・ 現場ツール</div>
+    <h1>階段補強板 <b>角度計算</b></h1>
+    <p class="sub">勾配・留めの角度と、両端留めの板の長さを計算できます。</p>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist">
+    <button type="button" data-pane="paneAngle" aria-pressed="true">角度</button>
+    <button type="button" data-pane="paneLength" aria-pressed="false">板の長さ</button>
+  </nav>
+
+  <div id="paneAngle">
+  <section class="card inputs">
+    <div class="unit">
+      <span>単位</span>
+      <div class="seg" id="unitSeg" role="group" aria-label="単位">
+        <button type="button" data-unit="mm" aria-pressed="true">mm</button>
+        <button type="button" data-unit="cm" aria-pressed="false">cm</button>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="field">
+        <label for="rise">蹴上（高さ）</label>
+        <div class="inwrap"><input id="rise" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf" data-suf>mm</span></div>
+      </div>
+      <div class="field">
+        <label for="tread">踏面（段鼻〜段鼻）</label>
+        <div class="inwrap"><input id="tread" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf" data-suf>mm</span></div>
+      </div>
+    </div>
+
+    <div class="kekomi">
+      <label class="check"><input type="checkbox" id="useKekomi"><span>踏面を「段鼻の先端まで（蹴込み込み）」で測った場合はここをON</span></label>
+      <div class="kekfield" id="kekfield" hidden>
+        <div class="field">
+          <label for="kekomi">蹴込み（差し引く・段鼻の出っ張り）</label>
+          <div class="inwrap"><input id="kekomi" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf" data-suf>mm</span></div>
+        </div>
+        <div class="going" id="going"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="display" id="display">
+    <div class="dhead"><span>勾配 θ</span><span class="arctan">θ = arctan(蹴上 ÷ 踏面)</span></div>
+    <div class="theta"><span id="theta">--</span><span class="deg">°</span></div>
+    <svg class="wedge" id="wedge" viewBox="0 0 230 118" aria-hidden="true">
+      <line x1="22" y1="100" x2="208" y2="100" stroke="#2C3D37" stroke-width="1.4"/>
+      <line id="run"  x1="22" y1="100" x2="22" y2="100" stroke="#2C3D37" stroke-width="1.4"/>
+      <line id="vert" x1="22" y1="100" x2="22" y2="100" stroke="#2C3D37" stroke-width="1.4"/>
+      <line id="bis"  x1="22" y1="100" x2="22" y2="100" stroke="#C9A36B" stroke-width="1.3" stroke-dasharray="4 4" opacity="0.85"/>
+      <path id="arc" d="" fill="none" stroke="#9FC9BC" stroke-width="1.3"/>
+      <line id="hyp"  x1="22" y1="100" x2="22" y2="100" stroke="#54E0A6" stroke-width="2.6" stroke-linecap="round"/>
+      <circle cx="22" cy="100" r="3" fill="#54E0A6"/>
+    </svg>
+    <div class="cuts">
+      <div class="cut">
+        <div class="cl">突付け（木口）</div>
+        <div class="cv"><span id="butt">--</span>°</div>
+      </div>
+      <div class="cut tsume">
+        <div class="cl"><b>留め</b>（左右 対切り）</div>
+        <div class="cv"><span id="miter">--</span>°</div>
+      </div>
+    </div>
+    <div class="saw">スライド丸ノコは「0＝直角（90°）」基準。突付けは木口を θ、留めは左右とも θ÷2 で同設定の対切り。</div>
+  </section>
+
+  <div class="actions">
+    <button type="button" class="btn btn-primary" id="rec">この角度を記録</button>
+    <button type="button" class="btn btn-ghost" id="reset">クリア</button>
+  </div>
+
+  <div class="memo">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5 14.5 13H1.5L8 1.5Z" stroke="#B5732A" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.3v3.1" stroke="#B5732A" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.2" r=".8" fill="#B5732A"/></svg>
+    <div>回り階段は踏面が壁ごとに変わります（内側ほど急）。板を付ける壁で実測した段鼻〜段鼻を入れてください。</div>
+  </div>
+
+  <section class="history" id="historyWrap" hidden>
+    <div class="hhead"><span>記録（タップで呼び出し）</span><button type="button" id="clearHist">すべて消去</button></div>
+    <ul id="histList"></ul>
+  </section>
+  </div><!-- /paneAngle -->
+
+  <div id="paneLength" hidden>
+    <section class="card inputs">
+      <div class="unit">
+        <span>単位</span>
+        <div class="seg" id="unitSeg2" role="group" aria-label="単位">
+          <button type="button" data-unit="mm" aria-pressed="true">mm</button>
+          <button type="button" data-unit="cm" aria-pressed="false">cm</button>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="field">
+          <label for="lwidth">板幅 W</label>
+          <div class="inwrap"><input id="lwidth" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf" data-suf>mm</span></div>
+        </div>
+        <div class="field">
+          <label for="lshort">測った辺（コーナー〜コーナー）</label>
+          <div class="inwrap"><input id="lshort" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf" data-suf>mm</span></div>
+        </div>
+      </div>
+
+      <div class="grid lenangles">
+        <div class="field">
+          <label for="mitL">留め角・左</label>
+          <div class="inwrap"><input id="mitL" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf">°</span></div>
+        </div>
+        <div class="field">
+          <label for="mitR">留め角・右</label>
+          <div class="inwrap"><input id="mitR" inputmode="decimal" placeholder="0" autocomplete="off"><span class="suf">°</span></div>
+        </div>
+      </div>
+
+      <button type="button" class="btn btn-ghost btn-wide" id="useMiter">先に「角度」タブで留め角を計算</button>
+
+      <div class="signs">
+        <div class="signrow">
+          <span class="signlab">左端 もう一方の辺は</span>
+          <div class="seg sign" id="signL" role="group" aria-label="左端の向き">
+            <button type="button" data-sign="1" aria-pressed="true">＋ 外へ長い</button>
+            <button type="button" data-sign="-1" aria-pressed="false">− 短い</button>
+          </div>
+        </div>
+        <div class="signrow">
+          <span class="signlab">右端 もう一方の辺は</span>
+          <div class="seg sign" id="signR" role="group" aria-label="右端の向き">
+            <button type="button" data-sign="1" aria-pressed="true">＋ 外へ長い</button>
+            <button type="button" data-sign="-1" aria-pressed="false">− 短い</button>
+          </div>
+        </div>
+        <div class="signhint">曲がりの外側の辺が長くなります。下の図が実物と同じ形になる向きを選んでください。両端＋＝台形、片方＋片方−＝S字（角度が同じなら平行四辺形）。</div>
+      </div>
+    </section>
+
+    <section class="display">
+      <div class="dhead"><span>反対の辺</span><span class="badge" id="shapeBadge">--</span></div>
+      <div class="theta"><span id="lLong">--</span><span class="deg lenunit"> mm</span></div>
+      <svg class="wedge" id="shapeSvg" viewBox="0 0 230 100" aria-hidden="true">
+        <polygon id="shapePoly" points="62,30 168,30 168,78 62,78" fill="#54E0A6" fill-opacity="0.12" stroke="#54E0A6" stroke-width="1.6"/>
+        <text x="115" y="20" fill="#9FC9BC" font-size="11" text-anchor="middle">反対の辺</text>
+        <text x="115" y="94" fill="#9FC9BC" font-size="11" text-anchor="middle">測った辺</text>
+      </svg>
+      <div class="cuts">
+        <div class="cut"><div class="cl">Δ左（端のズレ）</div><div class="cv"><span id="dL">--</span></div></div>
+        <div class="cut"><div class="cl">Δ右（端のズレ）</div><div class="cv"><span id="dR">--</span></div></div>
+      </div>
+      <div class="saw">測った辺を実測値に。反対の辺は各端で Δ だけ外（＋）または内（−）へ。Δ＝板幅 × tan(留め角)。単位は入力と同じ。</div>
+    </section>
+
+    <div class="memo">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1.5 14.5 13H1.5L8 1.5Z" stroke="#B5732A" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6.3v3.1" stroke="#B5732A" stroke-width="1.3" stroke-linecap="round"/><circle cx="8" cy="11.2" r=".8" fill="#B5732A"/></svg>
+      <div>迷ったら「片端を切って現物合わせ」が確実：片方の留めを切って当て、もう一端をコーナーで直接マークして切る。</div>
+    </div>
+  </div>
+
+  <footer>株式会社エッジ ・ 転倒ゼロの日本をつくる ｜ 手すり専門会社、日本一</footer>
+</main>
+
+<script>
+(function(){
+  var unit = "mm";
+  var riseEl = document.getElementById("rise");
+  var treadEl = document.getElementById("tread");
+  var kekomiEl = document.getElementById("kekomi");
+  var useKekomiEl = document.getElementById("useKekomi");
+  var kekfield = document.getElementById("kekfield");
+  var goingEl = document.getElementById("going");
+  var thetaEl = document.getElementById("theta");
+  var buttEl = document.getElementById("butt");
+  var miterEl = document.getElementById("miter");
+  var sufs = document.querySelectorAll("[data-suf]");
+
+  var hyp=document.getElementById("hyp"), run=document.getElementById("run"),
+      vert=document.getElementById("vert"), bis=document.getElementById("bis"),
+      arc=document.getElementById("arc");
+
+  var OX=22, OY=100, MAXRUN=178, MAXRISE=82;
+
+  function fmt(n){ return (Math.round(n*10)/10).toString(); }
+
+  function setWedge(theta){
+    var t = theta*Math.PI/180;
+    var ex, ey;
+    if (MAXRUN*Math.tan(t) <= MAXRISE){ ex = OX+MAXRUN; ey = OY - MAXRUN*Math.tan(t); }
+    else { ex = OX + MAXRISE/Math.tan(t); ey = OY - MAXRISE; }
+    hyp.setAttribute("x2", ex.toFixed(1)); hyp.setAttribute("y2", ey.toFixed(1));
+    run.setAttribute("x2", ex.toFixed(1)); run.setAttribute("y2", OY);
+    vert.setAttribute("x1", ex.toFixed(1)); vert.setAttribute("y1", OY);
+    vert.setAttribute("x2", ex.toFixed(1)); vert.setAttribute("y2", ey.toFixed(1));
+    // bisector (miter direction) at theta/2
+    var tb = (theta/2)*Math.PI/180, BL=64;
+    bis.setAttribute("x2", (OX+BL*Math.cos(tb)).toFixed(1));
+    bis.setAttribute("y2", (OY-BL*Math.sin(tb)).toFixed(1));
+    // angle arc, radius 30, from 0deg to theta
+    var R=30, ax=OX+R, ay=OY, bx=OX+R*Math.cos(t), by=OY-R*Math.sin(t);
+    arc.setAttribute("d","M "+ax+" "+ay+" A "+R+" "+R+" 0 0 0 "+bx.toFixed(1)+" "+by.toFixed(1));
+  }
+  function clearWedge(){
+    [hyp,run,vert,bis].forEach(function(l){ l.setAttribute("x2",OX); l.setAttribute("y2",OY); l.setAttribute("x1",OX); l.setAttribute("y1",OY); });
+    arc.setAttribute("d","");
+  }
+
+  function getGoing(){
+    var tread = parseFloat(treadEl.value);
+    if(!(tread>0)) return NaN;
+    if(useKekomiEl.checked){
+      var k = parseFloat(kekomiEl.value)||0;
+      var g = tread - k;
+      goingEl.textContent = (g>0) ? ("→ 実際の踏面 "+fmt(g)+" "+unit) : "踏面が0以下です。蹴込みを見直して。";
+      return g>0 ? g : NaN;
+    }
+    return tread;
+  }
+
+  function compute(){
+    var rise = parseFloat(riseEl.value);
+    var going = getGoing();
+    if(!(rise>0) || !(going>0)){
+      thetaEl.textContent="--"; buttEl.textContent="--"; miterEl.textContent="--"; clearWedge();
+      lastMiter=null; updateMiterBtn(); return;
+    }
+    var theta = Math.atan2(rise, going)*180/Math.PI;
+    thetaEl.textContent = fmt(theta);
+    buttEl.textContent = fmt(theta);
+    miterEl.textContent = fmt(theta/2);
+    setWedge(theta);
+    lastMiter = theta/2; updateMiterBtn();
+  }
+
+  // unit toggle (shared by both tabs)
+  function setUnit(u){
+    unit = u;
+    document.querySelectorAll("#unitSeg button, #unitSeg2 button").forEach(function(x){ x.setAttribute("aria-pressed", x.dataset.unit===u?"true":"false"); });
+    sufs.forEach(function(s){ s.textContent = u; });
+    compute(); computeLen();
+  }
+  document.getElementById("unitSeg").addEventListener("click", function(e){ var b=e.target.closest("button"); if(b) setUnit(b.dataset.unit); });
+  document.getElementById("unitSeg2").addEventListener("click", function(e){ var b=e.target.closest("button"); if(b) setUnit(b.dataset.unit); });
+
+  useKekomiEl.addEventListener("change", function(){
+    kekfield.hidden = !this.checked;
+    if(!this.checked) goingEl.textContent="";
+    compute();
+  });
+
+  [riseEl, treadEl, kekomiEl].forEach(function(el){ el.addEventListener("input", compute); });
+
+  document.getElementById("reset").addEventListener("click", function(){
+    riseEl.value=""; treadEl.value=""; kekomiEl.value=""; useKekomiEl.checked=false;
+    kekfield.hidden=true; goingEl.textContent=""; compute(); riseEl.focus();
+  });
+
+  // ---------- history (safe storage) ----------
+  var KEY="edge_kakudo_hist_v1", memHist=[];
+  function load(){ try{ var r=localStorage.getItem(KEY); return r?JSON.parse(r):[]; }catch(e){ return memHist; } }
+  function save(h){ memHist=h; try{ localStorage.setItem(KEY, JSON.stringify(h)); }catch(e){} }
+  var wrapEl=document.getElementById("historyWrap"), listEl=document.getElementById("histList");
+
+  function render(){
+    var h=load();
+    wrapEl.hidden = h.length===0;
+    listEl.innerHTML="";
+    h.forEach(function(it, i){
+      var li=document.createElement("li");
+      li.innerHTML='<span class="hi-dim">蹴上 '+it.r+'<span class="x">/</span>踏面 '+it.g+' '+(it.u||"")+'</span>'+
+                   '<span class="hi-res">θ '+it.t+'° ・ 留め '+it.m+'°</span>';
+      li.addEventListener("click", function(){
+        unit=it.u||"mm";
+        document.querySelectorAll("#unitSeg button").forEach(function(x){ x.setAttribute("aria-pressed", x.dataset.unit===unit?"true":"false"); });
+        sufs.forEach(function(s){ s.textContent=unit; });
+        riseEl.value=it.r; treadEl.value=it.g; useKekomiEl.checked=false; kekfield.hidden=true; goingEl.textContent="";
+        compute(); window.scrollTo({top:0, behavior:"smooth"});
+      });
+      listEl.appendChild(li);
+    });
+  }
+
+  document.getElementById("rec").addEventListener("click", function(){
+    var rise=parseFloat(riseEl.value), going=getGoing();
+    if(!(rise>0)||!(going>0)) return;
+    var theta=Math.atan2(rise,going)*180/Math.PI;
+    var h=load();
+    h.unshift({r:fmt(rise), g:fmt(going), u:unit, t:fmt(theta), m:fmt(theta/2)});
+    if(h.length>12) h=h.slice(0,12);
+    save(h); render();
+  });
+  document.getElementById("clearHist").addEventListener("click", function(){ save([]); render(); });
+
+  // ---------- length helper (板の長さ) ----------
+  var lwidthEl=document.getElementById("lwidth"), lshortEl=document.getElementById("lshort"),
+      mitLEl=document.getElementById("mitL"), mitREl=document.getElementById("mitR"),
+      lLongEl=document.getElementById("lLong"), dLEl=document.getElementById("dL"),
+      dREl=document.getElementById("dR"), useMiterBtn=document.getElementById("useMiter"),
+      signLEl=document.getElementById("signL"), signREl=document.getElementById("signR"),
+      shapeBadge=document.getElementById("shapeBadge"), shapePoly=document.getElementById("shapePoly");
+  var lastMiter=null;
+
+  function updateMiterBtn(){
+    useMiterBtn.textContent = (lastMiter!=null)
+      ? ("角度タブの留め角 "+fmt(lastMiter)+"° を左右に入れる")
+      : "先に「角度」タブで留め角を計算";
+    useMiterBtn.disabled = (lastMiter==null);
+    useMiterBtn.style.opacity = (lastMiter==null) ? "0.55" : "1";
+  }
+
+  function getSign(seg){ var b=seg.querySelector('[aria-pressed="true"]'); return b ? parseFloat(b.dataset.sign) : 1; }
+
+  function drawShape(dL,dR,sL,sR){
+    var TopY=30, BotY=78, BLx=62, BRx=168;
+    function off(d){ if(!isFinite(d)) return 20; if(d<=0) return 0; return Math.max(5, Math.min(34, d*0.55)); }
+    var oL=off(dL), oR=off(dR);
+    var TLx=BLx - sL*oL, TRx=BRx + sR*oR;
+    shapePoly.setAttribute("points", TLx.toFixed(1)+","+TopY+" "+TRx.toFixed(1)+","+TopY+" "+BRx+","+BotY+" "+BLx+","+BotY);
+  }
+
+  function computeLen(){
+    var W=parseFloat(lwidthEl.value), Lm=parseFloat(lshortEl.value),
+        aL=parseFloat(mitLEl.value), aR=parseFloat(mitREl.value);
+    var sL=getSign(signLEl), sR=getSign(signREl);
+    var dL=(W>0 && aL>=0 && isFinite(aL)) ? W*Math.tan(aL*Math.PI/180) : NaN;
+    var dR=(W>0 && aR>=0 && isFinite(aR)) ? W*Math.tan(aR*Math.PI/180) : NaN;
+    dLEl.textContent = isFinite(dL) ? fmt(dL) : "--";
+    dREl.textContent = isFinite(dR) ? fmt(dR) : "--";
+    var both = isFinite(dL) && isFinite(dR);
+    lLongEl.textContent = (Lm>0 && both) ? fmt(Lm + sL*dL + sR*dR) : "--";
+    if(!both){ shapeBadge.textContent="--"; }
+    else if(dL===0 && dR===0){ shapeBadge.textContent="長方形"; }
+    else if(Math.abs(sL*dL + sR*dR) < 0.05){ shapeBadge.textContent="平行四辺形"; }
+    else { shapeBadge.textContent="台形"; }
+    drawShape(dL, dR, sL, sR);
+  }
+
+  useMiterBtn.addEventListener("click", function(){
+    if(lastMiter==null) return;
+    mitLEl.value=fmt(lastMiter); mitREl.value=fmt(lastMiter); computeLen();
+  });
+  [lwidthEl,lshortEl,mitLEl,mitREl].forEach(function(el){ el.addEventListener("input", computeLen); });
+  [signLEl,signREl].forEach(function(seg){
+    seg.addEventListener("click", function(e){
+      var b=e.target.closest("button"); if(!b) return;
+      this.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+      computeLen();
+    });
+  });
+
+  // tabs
+  document.getElementById("tabs").addEventListener("click", function(e){
+    var b=e.target.closest("button"); if(!b) return;
+    var pane=b.dataset.pane;
+    this.querySelectorAll("button").forEach(function(x){ x.setAttribute("aria-pressed", x===b?"true":"false"); });
+    document.getElementById("paneAngle").hidden = (pane!=="paneAngle");
+    document.getElementById("paneLength").hidden = (pane!=="paneLength");
+    if(pane==="paneLength") updateMiterBtn();
+    window.scrollTo({top:0});
+  });
+
+  render(); compute(); computeLen(); updateMiterBtn();
+})();
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('./sw.js').catch(function(){});});}
+</script>
+</body>
+</html>
